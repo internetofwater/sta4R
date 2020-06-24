@@ -30,10 +30,13 @@ There are two families of functions that need to be created:
 
 1. Functions replicating SensorThings API calls. These can be built with:
   - ```httr``` package request framework 
-  - solid understanding of the SensorThings Data Model
-  - solid understanding of SensorThings API request patterns
+  - solid understanding of the SensorThings Data Model (see [description](https://ogc-iot.github.io/ogc-iot-api/datamodel.html) and/or [video](https://youtu.be/eWsT_4SlcBM))
+  - solid understanding of SensorThings API request patterns (see SensorUp [API Docs](https://developers.sensorup.com/docs/) and [Tutorials](https://developers.sensorup.com/examples/)
   
 2. Functions parsing SensorThings responses into R data objects, including:
   - ```data.frame``` / ```tibbles```
   - ```sf``` objects
+
+### Playground
+
 
