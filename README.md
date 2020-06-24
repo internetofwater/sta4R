@@ -24,5 +24,16 @@ In addition, the user can use ```sta4R``` functions to import data from tabular 
 - STA API response handling and parsing into R data objects
 
 
+## SensorThings API and R
 
+There are two families of functions that need to be created:
+
+1. Functions replicating SensorThings API calls. These can be built with:
+  - ```httr``` package request framework 
+  - solid understanding of the SensorThings Data Model
+  - solid understanding of SensorThings API request patterns
+  
+2. Functions parsing SensorThings responses into R data objects, including:
+  - ```data.frame``` / ```tibbles```
+  - ```sf``` objects
 
