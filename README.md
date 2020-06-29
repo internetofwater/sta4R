@@ -39,5 +39,5 @@ There are two families of functions that need to be created:
 
 ### Playground
 
-a playground sta to read data from and write data to is at https://sta-demo.internetofwater.dev/api/
+a playground sta to read data from and write data to is at https://sta-demo.internetofwater.dev/api/1.0 (or 1.1)
 
