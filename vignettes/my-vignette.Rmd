@@ -1,0 +1,103 @@
+---
+title: "SensorThings API Demo"
+author: 
+  - Kyle Onda^[Internet of Water, kyle.onda@duke.edu]
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_width: 8
+    fig_height: 8
+    theme: readable
+  
+---
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+
+```
+
+```{r, include=FALSE}
+convert_links <- function(x) {
+  for(n in names(x)) {
+    if(is.character(x[[n]])) {
+      test <- grepl("^http", x[[n]])
+      x[[n]][test] <- paste0('<a href="', 
+                             x[[n]][test], 
+                             '" target="_blank">', 
+                             x[[n]][test], 
+                             '</a>')
+    }
+  }
+  x
+}
+
+getThings_Locations <- function(api){
+  call <- URLencode(paste0(api,"/Things?$expand=Locations($select=location;$top=1)&$resultFormat=GeoJSON"))
+  result <- sf::read_sf(call)
+}
+
+getLocationsCall <- function(call){
+    json <- jsonlite::fromJSON(call,flatten=TRUE)$value
+    json<-sta_locs_as_sf(json)
+   
+}
+
+sta_locs_as_sf <- function(json){
+    locs <- json$location.coordinates
+    locs <- as.data.frame(do.call(rbind,locs))
+    names(locs) <- c("lon","lat")
+    json <- cbind(json,locs)
+    json <- sf::st_as_sf(json, coords = c('lon','lat'), crs = 4326)
+    json$location.coordinates <- NULL
+    return(json)
+}
+
+getLocations <- function(api){
+  call <- URLencode(paste0(api,"/Locations"))
+  response <- jsonlite::fromJSON(URLencode(paste0(call,"?$count=true")))
+  if (is.null(response$`@iot.nextLink`)){
+    x <- getLocationsCall(call)
+  } else {
+    skip <- strsplit(response$`@iot.nextLink`,"skip=")[[1]][2]
+  }
+  
+  
+  k <- floor(count/100)
+  list <- list(0:k*100)
+  x<-purrr::map(list,getLocationsCall)
+  x
+  return(x)
+}
+
+getMostRecentResults <- function(api,skip=0){
+  call <- paste0(api,"/Things?$expand=Locations($select=location;%20$top=1),Datastreams($top=1)/Observations($top=1)&$resultFormat=GeoJSON&$skip=",skip)
+  result <- sf::read_sf(call)
+}
+
+```
+
+## SensorThings: Interoperability for georeferenced observation data
+
+You can do great things with SensorThings API
+
+```{r setup}
+api_nmbgmr <- "https://st.newmexicowaterdata.org/FROST-Server/v1.1"
+api_usgs <- "https://sta-demo.internetofwater.dev/api/v1.1"
+api_nmed <- "https://e-enterprise-test.apigee.net/sdwis/sta/v1.0"
+
+nmbgmr <- getMostRecentResults(api,400)
+usgs
+nmed
+```
+
+# #Part 2
+
+# Part 3
