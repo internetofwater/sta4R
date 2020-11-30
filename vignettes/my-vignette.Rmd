@@ -50,10 +50,20 @@ getLocationsCall <- function(call){
    
 }
 
+sta_location_parse <- function(locs){
+  locs <-do.call(rbind.data.frame, lapply(locs, function(x) {
+     x <- toString(unlist(x))}))
+  names(locs) <- "coords"
+  locs$coords[which(is.null(locs$coords) | locs$coords=="")]<-"0,0"
+  locs <- data.frame(do.call('rbind', strsplit(locs$coords,',',fixed=TRUE)))
+  names(locs) <- c("lon","lat")
+  locs$lon <- as.numeric(locs$lon)
+  locs$lat <- as.numeric(locs$lat)
+  return(locs)
+}
+
 sta_locs_as_sf <- function(json){
-    locs <- json$location.coordinates
-    locs <- as.data.frame(do.call(rbind,locs))
-    names(locs) <- c("lon","lat")
+    locs <- sta_location_parse(json$location.coordinates)
     json <- cbind(json,locs)
     json <- sf::st_as_sf(json, coords = c('lon','lat'), crs = 4326)
     json$location.coordinates <- NULL
@@ -67,19 +77,23 @@ getLocations <- function(api){
     x <- getLocationsCall(call)
   } else {
     skip <- strsplit(response$`@iot.nextLink`,"skip=")[[1]][2]
+    skip <- as.numeric(strsplit(skip,split="&")[[1]][1])
+    count <- response$`@iot.count`
+    k <- floor(count/skip)
+    list <- paste0(call,"?$skip=",0:k*skip)
+    x<-purrr::map(list,getLocationsCall)
+    x <- do.call(dplyr::bind_rows,x)
   }
-  
-  
-  k <- floor(count/100)
-  list <- list(0:k*100)
-  x<-purrr::map(list,getLocationsCall)
-  x
   return(x)
 }
 
 getMostRecentResults <- function(api,skip=0){
   call <- paste0(api,"/Things?$expand=Locations($select=location;%20$top=1),Datastreams($top=1)/Observations($top=1)&$resultFormat=GeoJSON&$skip=",skip)
   result <- sf::read_sf(call)
+}
+
+mapview_sta <- function(api, ...){
+  mapview::mapview(convert_links(getLocations(api)), ...)
 }
 
 ```
@@ -93,9 +107,7 @@ api_nmbgmr <- "https://st.newmexicowaterdata.org/FROST-Server/v1.1"
 api_usgs <- "https://sta-demo.internetofwater.dev/api/v1.1"
 api_nmed <- "https://e-enterprise-test.apigee.net/sdwis/sta/v1.0"
 
-nmbgmr <- getMostRecentResults(api,400)
-usgs
-nmed
+mapview_sta(api_usgs,col.regions="green", layer.name="National Groundwater Monitoring Network") + mapview_sta(api_nmbgmr, col.regions="red", layer.name="New Mexico Bureau of Geology and Mineral Resources") + mapview_sta(api_nmed, col.regions="orange", layer.name="NMED SDWIS", cex=3)
 ```
 
 # #Part 2
