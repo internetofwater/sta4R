@@ -26,7 +26,8 @@ knitr::opts_chunk$set(
 ## SensorThings: Interoperability for georeferenced observation data
 
 You can do great things with SensorThings API. Any instance of SensorThings API can be interacted with using the same functions. Below, I've written a collection of helper functions and a function called `sta_mapview()` that takes as an input the URL of any SensorThings API endpoint, and turns it into an interactive leaflet map.
-```{r, echo=FALSE}
+
+```{r, include=TRUE}
 convert_links <- function(x) {
   for(n in names(x)) {
     if(is.character(x[[n]])) {
@@ -111,7 +112,13 @@ sta_mapview <- function(api, ...){
 
 ```
 
- Below, I show how this function can be used to quickle create a map visualization of three separate SensorThings API endpoints (the one offered by NMBGMR, a proxy of the USGS National Groundwater Monitoring Network, and a proxy of the NMED instance of SDWIS/State)
+Other version of sta_as_sf
+```{r}
+x<-rjson::fromJSON(file="https://twsd.internetofwater.dev/api/v1.1/Locations")$value
+x1 <- sf::read_sf(rjson::toJSON(x[[1]]))
+
+```
+ Below, I show how this function can be used to quickly create a map visualization of three separate SensorThings API endpoints (the one offered by NMBGMR, a proxy of the USGS National Groundwater Monitoring Network, and a proxy of the NMED instance of SDWIS/State)
 
 ```{r setup, results='asis'}
 api_nmbgmr <- "https://st.newmexicowaterdata.org/FROST-Server/v1.1"
