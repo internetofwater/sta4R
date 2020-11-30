@@ -23,8 +23,10 @@ knitr::opts_chunk$set(
 
 
 ```
+## SensorThings: Interoperability for georeferenced observation data
 
-```{r, include=FALSE}
+You can do great things with SensorThings API. Any instance of SensorThings API can be interacted with using the same functions. Below, I've written a collection of helper functions and a function called `sta_mapview()` that takes as an input the URL of any SensorThings API endpoint, and turns it into an interactive leaflet map.
+```{r, echo=FALSE}
 convert_links <- function(x) {
   for(n in names(x)) {
     if(is.character(x[[n]])) {
@@ -87,29 +89,40 @@ getLocations <- function(api){
   return(x)
 }
 
+sta_iterate <- function(call,response){
+    skip <- strsplit(response$`@iot.nextLink`,"skip=")[[1]][2]
+    skip <- as.numeric(strsplit(skip,split="&")[[1]][1])
+    count <- response$`@iot.count`
+    k <- floor(count/skip)
+    list <- paste0(call,"?$skip=",0:k*skip)
+    x<-purrr::map(list,getLocationsCall)
+    x <- do.call(dplyr::bind_rows,x)
+}
+
+
 getMostRecentResults <- function(api,skip=0){
   call <- paste0(api,"/Things?$expand=Locations($select=location;%20$top=1),Datastreams($top=1)/Observations($top=1)&$resultFormat=GeoJSON&$skip=",skip)
   result <- sf::read_sf(call)
 }
 
-mapview_sta <- function(api, ...){
+sta_mapview <- function(api, ...){
   mapview::mapview(convert_links(getLocations(api)), ...)
 }
 
 ```
 
-## SensorThings: Interoperability for georeferenced observation data
+ Below, I show how this function can be used to quickle create a map visualization of three separate SensorThings API endpoints (the one offered by NMBGMR, a proxy of the USGS National Groundwater Monitoring Network, and a proxy of the NMED instance of SDWIS/State)
 
-You can do great things with SensorThings API
-
-```{r setup}
+```{r setup, results='asis'}
 api_nmbgmr <- "https://st.newmexicowaterdata.org/FROST-Server/v1.1"
 api_usgs <- "https://sta-demo.internetofwater.dev/api/v1.1"
 api_nmed <- "https://e-enterprise-test.apigee.net/sdwis/sta/v1.0"
 
-mapview_sta(api_usgs,col.regions="green", layer.name="National Groundwater Monitoring Network") + mapview_sta(api_nmbgmr, col.regions="red", layer.name="New Mexico Bureau of Geology and Mineral Resources") + mapview_sta(api_nmed, col.regions="orange", layer.name="NMED SDWIS", cex=3)
+sta_mapview(api_usgs,col.regions="green", layer.name="National Groundwater Monitoring Network") + 
+  sta_mapview(api_nmbgmr, col.regions="red", layer.name="New Mexico Bureau of Geology and Mineral Resources") + 
+  sta_mapview(api_nmed, col.regions="orange", layer.name="NMED SDWIS", cex=3)
 ```
 
-# #Part 2
 
-# Part 3
+
+
