@@ -25,79 +25,12 @@ knitr::opts_chunk$set(
 ```
 ## SensorThings: Interoperability for georeferenced observation data
 
-You can do great things with SensorThings API. Any instance of SensorThings API can be interacted with using the same functions. Below, I've written a collection of helper functions and a function called `sta_mapview()` that takes as an input the URL of any SensorThings API endpoint, and turns it into an interactive leaflet map.
-
-```{r, include=TRUE}
-convert_links <- function(x) {
-  for(n in names(x)) {
-    if(is.character(x[[n]])) {
-      test <- grepl("^http", x[[n]])
-      x[[n]][test] <- paste0('<a href="', 
-                             x[[n]][test], 
-                             '" target="_blank">', 
-                             x[[n]][test], 
-                             '</a>')
-    }
-  }
-  x
-}
-
-getThings_Locations <- function(api){
-  call <- URLencode(paste0(api,"/Things?$expand=Locations($select=location;$top=1)&$resultFormat=GeoJSON"))
-  result <- sf::read_sf(call)
-}
-
-
-sta_getLocations <- function(api){
-  call <- URLencode(paste0(api,"/Locations"))
-  response <- jsonlite::fromJSON(URLencode(paste0(call,"?$count=true")))
-  if (is.null(response$`@iot.nextLink`)){
-    x <- sta_getLocationsCall(call)
-  } else {
-    x <- sta_iterate(call,response,sta_getLocationsCall)
-  }
-  return(x)
-}
-
-sta_iterate <- function(call,response,fun){
-    skip <- strsplit(response$`@iot.nextLink`,"skip=")[[1]][2]
-    skip <- as.numeric(strsplit(skip,split="&")[[1]][1])
-    count <- response$`@iot.count`
-    k <- floor(count/skip)
-    list <- paste0(call,"?$skip=",0:k*skip)
-    x<-purrr::map(list,fun)
-    x <- do.call(dplyr::bind_rows,x)
-    return(x)
-}
-
-sta_getLocationsCall <- function(call){
-  j <- rawToChar(httr::GET(call)$content)
-  j <- gsub('\"coordinates\":\\[\\]','\"coordinates\":\\[0,0\\]',j)
-  x <- rjson::fromJSON(j)$value
-  x <- lapply(x,function(x){rjson::toJSON(x)})
-  x <- do.call(dplyr::bind_rows,lapply(x,function(x){geojsonio::geojson_sf(x)}))
-  j <- jsonlite::fromJSON(j)$val
-  j$location <- NULL
-  j <- sf::st_as_sf(cbind(j,x))
-  return(j)
-}
-
-
-getMostRecentResults <- function(api,skip=0){
-  call <- paste0(api,"/Things?$expand=Locations($select=location;%20$top=1),Datastreams($top=1)/Observations($top=1)&$resultFormat=GeoJSON&$skip=",skip)
-  result <- sf::read_sf(call)
-}
-
-sta_mapview <- function(api, ...){
-  mapview::mapview(convert_links(sta_getLocations(api)), ...)
-}
-
-```
-
-
- Below, I show how this function can be used to quickly create a map visualization of three separate SensorThings API endpoints (the one offered by NMBGMR, a proxy of the USGS National Groundwater Monitoring Network, and a proxy of the NMED instance of SDWIS/State)
+You can do great things with SensorThings API. Any instance of SensorThings API can be interacted with using the same functions. For example, I have written a small R package (available at [https://github.com/internetofwater/sta4R](https://github.com/internetofwater/sta4R) that provides commands that can be applied to any SensorThings API endpoint. For example, a function called `sta_mapview()` that takes as an input the URL of any SensorThings API endpoint, and turns it into an interactive leaflet map. Below, I show how this function can be used to quickly create a map visualization of three separate SensorThings API endpoints (the one offered by NMBGMR, a proxy of the USGS National Groundwater Monitoring Network, and a proxy of the NMED instance of SDWIS/State)
 
 ```{r setup, results='asis'}
+#devtools::install_github("internetofwater/sta4R")
+library("sta4R")
+
 api_nmbgmr <- "https://st.newmexicowaterdata.org/FROST-Server/v1.1"
 api_usgs <- "https://sta-demo.internetofwater.dev/api/v1.1"
 api_nmed <- "https://e-enterprise-test.apigee.net/sdwis/sta/v1.0"
