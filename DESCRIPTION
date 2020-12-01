@@ -1,15 +1,21 @@
 Package: sta4R
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Client for OGC SensorThings API Services
+Version: 0.1.0
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Kyle",
+           family = "Onda",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to
-    pick a license
+           email = "kyle.onda@duke.edu",
+           comment = c(ORCID = "0000-0002-4714-7654"))
+Description: A client for SensorThings API (STA, 
+  see <https://www.ogc.org/standards/sensorthings>) as specified
+  by the Open Geospatial Consortium (OGC). With the package users
+  can retrieve (meta)data from STA instances and interactively
+  create requests, plots, and maps for near real-time observation
+  data based on available sensors, observed properties, locations etc.
+  using thematic, temporal, and spatial filtering. Users can also
+  create requests to load data into STA instances.
+License: `use_mit_license()`
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -18,3 +24,14 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+Imports:
+    dplyr,
+    httr,
+    mapview,
+    sf,
+    geojsonio,
+    jsonlite,
+    rjson,
+    purrr,
+    timetk,
+    ggplot2

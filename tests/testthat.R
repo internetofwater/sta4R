@@ -7,4 +7,4 @@
 
 library(pidsvcBackup)
 library(testthat)
-test_check("pidsvcBackup")
+#test_check("pidsvcBackup")

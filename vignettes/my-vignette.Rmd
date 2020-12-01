@@ -47,57 +47,39 @@ getThings_Locations <- function(api){
   result <- sf::read_sf(call)
 }
 
-getLocationsCall <- function(call){
-    json <- jsonlite::fromJSON(call,flatten=TRUE)$value
-    json<-sta_locs_as_sf(json)
-   
-}
 
-sta_location_parse <- function(locs){
-  locs <-do.call(rbind.data.frame, lapply(locs, function(x) {
-     x <- toString(unlist(x))}))
-  names(locs) <- "coords"
-  locs$coords[which(is.null(locs$coords) | locs$coords=="")]<-"0,0"
-  locs <- data.frame(do.call('rbind', strsplit(locs$coords,',',fixed=TRUE)))
-  names(locs) <- c("lon","lat")
-  locs$lon <- as.numeric(locs$lon)
-  locs$lat <- as.numeric(locs$lat)
-  return(locs)
-}
-
-sta_locs_as_sf <- function(json){
-    locs <- sta_location_parse(json$location.coordinates)
-    json <- cbind(json,locs)
-    json <- sf::st_as_sf(json, coords = c('lon','lat'), crs = 4326)
-    json$location.coordinates <- NULL
-    return(json)
-}
-
-getLocations <- function(api){
+sta_getLocations <- function(api){
   call <- URLencode(paste0(api,"/Locations"))
   response <- jsonlite::fromJSON(URLencode(paste0(call,"?$count=true")))
   if (is.null(response$`@iot.nextLink`)){
-    x <- getLocationsCall(call)
+    x <- sta_getLocationsCall(call)
   } else {
-    skip <- strsplit(response$`@iot.nextLink`,"skip=")[[1]][2]
-    skip <- as.numeric(strsplit(skip,split="&")[[1]][1])
-    count <- response$`@iot.count`
-    k <- floor(count/skip)
-    list <- paste0(call,"?$skip=",0:k*skip)
-    x<-purrr::map(list,getLocationsCall)
-    x <- do.call(dplyr::bind_rows,x)
+    x <- sta_iterate(call,response,sta_getLocationsCall)
   }
   return(x)
 }
 
-sta_iterate <- function(call,response){
+sta_iterate <- function(call,response,fun){
     skip <- strsplit(response$`@iot.nextLink`,"skip=")[[1]][2]
     skip <- as.numeric(strsplit(skip,split="&")[[1]][1])
     count <- response$`@iot.count`
     k <- floor(count/skip)
     list <- paste0(call,"?$skip=",0:k*skip)
-    x<-purrr::map(list,getLocationsCall)
+    x<-purrr::map(list,fun)
     x <- do.call(dplyr::bind_rows,x)
+    return(x)
+}
+
+sta_getLocationsCall <- function(call){
+  j <- rawToChar(httr::GET(call)$content)
+  j <- gsub('\"coordinates\":\\[\\]','\"coordinates\":\\[0,0\\]',j)
+  x <- rjson::fromJSON(j)$value
+  x <- lapply(x,function(x){rjson::toJSON(x)})
+  x <- do.call(dplyr::bind_rows,lapply(x,function(x){geojsonio::geojson_sf(x)}))
+  j <- jsonlite::fromJSON(j)$val
+  j$location <- NULL
+  j <- sf::st_as_sf(cbind(j,x))
+  return(j)
 }
 
 
@@ -107,17 +89,12 @@ getMostRecentResults <- function(api,skip=0){
 }
 
 sta_mapview <- function(api, ...){
-  mapview::mapview(convert_links(getLocations(api)), ...)
+  mapview::mapview(convert_links(sta_getLocations(api)), ...)
 }
 
 ```
 
-Other version of sta_as_sf
-```{r}
-x<-rjson::fromJSON(file="https://twsd.internetofwater.dev/api/v1.1/Locations")$value
-x1 <- sf::read_sf(rjson::toJSON(x[[1]]))
 
-```
  Below, I show how this function can be used to quickly create a map visualization of three separate SensorThings API endpoints (the one offered by NMBGMR, a proxy of the USGS National Groundwater Monitoring Network, and a proxy of the NMED instance of SDWIS/State)
 
 ```{r setup, results='asis'}
@@ -125,11 +102,12 @@ api_nmbgmr <- "https://st.newmexicowaterdata.org/FROST-Server/v1.1"
 api_usgs <- "https://sta-demo.internetofwater.dev/api/v1.1"
 api_nmed <- "https://e-enterprise-test.apigee.net/sdwis/sta/v1.0"
 
-sta_mapview(api_usgs,col.regions="green", layer.name="National Groundwater Monitoring Network") + 
+plot <- sta_mapview(api_usgs,col.regions="green", layer.name="National Groundwater Monitoring Network") + 
   sta_mapview(api_nmbgmr, col.regions="red", layer.name="New Mexico Bureau of Geology and Mineral Resources") + 
   sta_mapview(api_nmed, col.regions="orange", layer.name="NMED SDWIS", cex=3)
-```
 
+leaflet::setView(plot@map,-106,34.6, zoom=7)
+```
 
 
 
