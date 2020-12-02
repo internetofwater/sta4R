@@ -15,11 +15,11 @@ Description: A client for SensorThings API (STA,
   data based on available sensors, observed properties, locations etc.
   using thematic, temporal, and spatial filtering. Users can also
   create requests to load data into STA instances.
-License: `use_mit_license()`
+License: use_mit_license()
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Suggests: 
     knitr,
     rmarkdown
